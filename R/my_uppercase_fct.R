@@ -7,9 +7,9 @@
 #'
 #' @examples
 #' x <- "hello world"
-#' return_uppercase(x)
+#' my_uppercase_fct(x)
 
-return_uppercase <- function(x){
+my_uppercase_fct <- function(x){
 
   toupper(x)
 
