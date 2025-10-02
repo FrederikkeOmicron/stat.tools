@@ -10,44 +10,50 @@
 #'
 #' @examples
 #' data <- default (from ISLR package)
-#' interaction_model(data, outcome = default, predictor = student, covariates = c("income", "balance"))
+#' interaction_model(data, outcome = "default", predictor = "student", covariates = c("income", "balance"))
 
 interaction_model <- function(data, outcome, predictor, covariates){
 
-  data_longer = melt(data, measure.vars = covariates, variable.name = "parameter", value.name = "value")
-  level1 = levels(data$predictor)[1]
+  data_longer <- data %>%
+    pivot_longer(
+      cols = all_of(covariates),
+      names_to = "parameter",
+      values_to = "value"
+    )
+
+  level1 = levels(data[[predictor]])[2]
   plevel_str = paste0(predictor, level1)
 
   results = list()
 
   #all
-  model = glm(outcome ~ predictor, family = "binomial", data = data)
-    #glm(outcome ~ predictor, offset = log(futime/(365.25*1000)), family = poisson(link = "log"), data = data)
+  formula_str <- paste(outcome, "~", predictor)
+  model <- glm(formula = as.formula(formula_str), family = "binomial", data = data)
 
   coeff = coefficients(model)
   vcov_matrix = vcov(model)
 
   IRR = exp(coeff[plevel_str])
   std_error = sqrt(vcov_matrix[plevel_str, plevel_str])
-  IRR_lower = IRR *exp(-qnorm(0.975) * std_error)
-  IRR_upper = IRR *exp(qnorm(0.975) * std_error)
+  IRR_lower = IRR * exp(-qnorm(0.975) * std_error)
+  IRR_upper = IRR * exp(qnorm(0.975) * std_error)
 
-  results[["overall"]] = data.frame(IRR = IRR, IRR_lower = IRR_lower, IRR_upper = IRR_upper, value = "all", parameter = "overall")
+  results[["overall"]] = data.frame(parameter = "overall", value = "all", IRR = IRR, IRR_lower = IRR_lower, IRR_upper = IRR_upper)
 
   #covariates
   for (covar in covariates){
-    data_temp = data_longer[parameter == covar, ]
+    data_temp = data_longer %>% filter(parameter == covar)
 
-    model = glm(outcome ~ predictor * value, family = "binomial", data = data_temp)
-      #glm(outcome ~ predictor * value, offset = log(futime/(365.25*1000)), family = poisson(link = "log"), data = data_temp)
+    formula_str <- paste(outcome, "~", predictor, "* value")
+    model <- glm(formula = as.formula(formula_str), family = "binomial", data = data_temp)
 
     coeff = coefficients(model)
     vcov_matrix = vcov(model)
 
     IRR = exp(coeff[plevel_str])
     std_error = sqrt(vcov_matrix[plevel_str, plevel_str])
-    IRR_lower = IRR *exp(-qnorm(0.975) * std_error)
-    IRR_upper = IRR *exp(qnorm(0.975) * std_error)
+    IRR_lower = IRR * exp(-qnorm(0.975) * std_error)
+    IRR_upper = IRR * exp(qnorm(0.975) * std_error)
 
     IRRs = IRR
     IRR_lowers = IRR_lower
@@ -66,7 +72,7 @@ interaction_model <- function(data, outcome, predictor, covariates){
       IRR_lowers = c(IRR_lowers, IRR_lower)
       IRR_uppers = c(IRR_uppers, IRR_upper)
     }
-    results[[covar]] = data.frame(IRR = IRRs, IRR_lower = IRR_lowers, IRR_upper = IRR_uppers, value = value_levels, parameter = covar)
+    results[[covar]] = data.frame(parameter = covar, value = value_levels, IRR = IRRs, IRR_lower = IRR_lowers, IRR_upper = IRR_uppers)
   }
 
   results = rbindlist(results)
