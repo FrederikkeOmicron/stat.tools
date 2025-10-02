@@ -1,3 +1,17 @@
+#' Create a table of interaction models
+#'
+#' @param data A dataframe in wide format
+#' @param outcome A column in data with two levels to be predicted
+#' @param predictor A column in data with two levels to predict outcome
+#' @param covariates A vector of column names in data to model their interaction with predictor on outcome
+#'
+#' @returns A dataframe of the table of interaction models
+#' @export
+#'
+#' @examples
+#' data <- default (from ISLR package)
+#' interaction_model(data, outcome = default, predictor = student, covariates = c("income", "balance"))
+
 interaction_model <- function(data, outcome, predictor, covariates){
 
   data_longer = melt(data, measure.vars = covariates, variable.name = "parameter", value.name = "value")
